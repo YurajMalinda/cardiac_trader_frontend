@@ -2,9 +2,12 @@
 
 A modern React-based frontend application for the Cardiac Trader stock trading game. Built with React 19, TypeScript, Vite, Ant Design, and Tailwind CSS.
 
+**University of Bedfordshire (UOB) - Computer Science (CS) - Data Structures and Algorithms (DSA) Module Project**
+
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js 18+ and npm
 - Backend API running on http://localhost:8080
 
@@ -72,6 +75,7 @@ cardiac_trader_frontend/
 ## 🎨 Features
 
 ### Pages
+
 - **Login/Register**: User authentication with email verification
 - **Game**: Main trading interface with market, portfolio, and trading panels
 - **Profile**: User profile management and settings
@@ -79,6 +83,7 @@ cardiac_trader_frontend/
 - **Email Verification**: Email verification page
 
 ### Components
+
 - **Header**: Navigation bar with user menu
 - **MarketPanel**: Display available stocks with heart puzzle images
 - **TradingPanel**: Buy/sell stock interface
@@ -87,6 +92,7 @@ cardiac_trader_frontend/
 - **RoundResultModal**: Display round results and game completion
 
 ### Context Providers
+
 - **AuthContext**: Manages user authentication state
 - **GameContext**: Manages game session and round state
 
@@ -104,13 +110,15 @@ cardiac_trader_frontend/
 ## ⚙️ Configuration
 
 ### API Base URL
+
 Edit `src/utils/constants.ts` to change the API base URL:
 
 ```typescript
-export const API_BASE_URL = 'http://localhost:8080/api';
+export const API_BASE_URL = "http://localhost:8080/api";
 ```
 
 ### Environment Variables
+
 Create a `.env` file in the root directory (optional):
 
 ```env
@@ -120,6 +128,7 @@ VITE_API_BASE_URL=http://localhost:8080/api
 ## 🔐 Authentication
 
 The application uses JWT-based authentication with httpOnly cookies for security:
+
 - Tokens are automatically refreshed when expired
 - Failed requests are queued during token refresh
 - Automatic redirect to login on authentication failure
@@ -138,6 +147,7 @@ The application uses JWT-based authentication with httpOnly cookies for security
 ## 📱 Responsive Design
 
 The application is fully responsive and works on:
+
 - Desktop (1920px+)
 - Laptop (1024px - 1919px)
 - Tablet (768px - 1023px)
@@ -153,6 +163,7 @@ The application is fully responsive and works on:
 ## 🔧 Development
 
 ### Code Structure
+
 - **Components**: Reusable UI components
 - **Pages**: Route-level components
 - **Context**: Global state management
@@ -161,6 +172,7 @@ The application is fully responsive and works on:
 - **Utils**: Helper functions and constants
 
 ### Best Practices
+
 - TypeScript for type safety
 - Functional components with hooks
 - Context API for state management
@@ -172,16 +184,19 @@ The application is fully responsive and works on:
 ### Common Issues
 
 1. **API Connection Errors**
+
    - Verify backend is running on http://localhost:8080
    - Check API_BASE_URL in `src/utils/constants.ts`
    - Verify CORS settings in backend
 
 2. **Authentication Issues**
+
    - Clear browser cookies and localStorage
    - Check browser console for errors
    - Verify JWT token is being set correctly
 
 3. **Build Errors**
+
    - Delete `node_modules` and `package-lock.json`
    - Run `npm install` again
    - Check Node.js version (requires 18+)
@@ -194,17 +209,21 @@ The application is fully responsive and works on:
 ## 📦 Build & Deploy
 
 ### Development Build
+
 ```bash
 npm run dev
 ```
 
 ### Production Build
+
 ```bash
 npm run build
 ```
+
 Output will be in the `dist/` directory.
 
 ### Preview Production Build
+
 ```bash
 npm run preview
 ```
@@ -223,5 +242,20 @@ npm run preview
 
 ## 📄 License
 
-Part of the UOB-SCU DSA course project.
+This project is licensed under the MIT License.
 
+Copyright (c) 2025 Yuraj Malinda
+
+See the [LICENSE](./LICENSE) file for details.
+
+## 🎓 Academic Information
+
+This project was developed as part of the **Data Structures and Algorithms (DSA)** module in the **Computer Science (CS)** program at the **University of Bedfordshire (UOB)**.
+
+This frontend component demonstrates:
+
+- React and TypeScript development
+- Component-based architecture
+- State management with React Context API
+- RESTful API integration
+- Responsive UI design
