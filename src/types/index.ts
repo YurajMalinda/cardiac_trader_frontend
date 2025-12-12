@@ -131,6 +131,7 @@ export interface StockDTO {
   sharesOwned?: number;
   averagePrice?: number;
   totalValue?: number;
+  realStockSymbol?: string; // Real stock symbol from Alpha Vantage (e.g., "AAPL" for HTCH)
 }
 
 export interface HoldingDTO {
@@ -191,6 +192,32 @@ export interface RoundResultDTO {
   unlockedTools: string[];
   gameComplete: boolean;
   nextRoundNumber?: number;
+}
+
+export interface RoundSummaryDTO {
+  roundId: string; // UUID
+  roundNumber: number;
+  capitalAtStart: number;
+  capitalAtEnd: number;
+  profitLoss: number;
+  profitLossPercentage: number;
+  durationSeconds?: number;
+}
+
+export interface GameSummaryDTO {
+  gameSessionId: string; // UUID
+  difficultyLevel: DifficultyLevel;
+  startingCapital: number;
+  finalCapital: number;
+  totalProfitLoss: number;
+  totalProfitLossPercentage: number;
+  startedAt: string; // ISO date string
+  completedAt: string; // ISO date string
+  rounds: RoundSummaryDTO[];
+  bestRoundNumber?: number;
+  worstRoundNumber?: number;
+  bestRoundProfit?: number;
+  worstRoundProfit?: number;
 }
 
 // Tool responses can have different structures

@@ -32,9 +32,17 @@ const MarketPanel = ({
     stock: StockDTO;
   } | null>(null);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const loadedImagesRef = useRef<Set<string>>(new Set());
   const previousImageUrlsRef = useRef<Map<string, string>>(new Map());
   const previousRoundRef = useRef<number | undefined>(undefined);
   const imagesToLoadRef = useRef<Set<string>>(new Set());
+  const lastLoadedSessionIdRef = useRef<string | null>(null);
+  const lastLoadedRoundNumberRef = useRef<number | undefined>(undefined);
+  
+  // Keep ref in sync with state
+  useEffect(() => {
+    loadedImagesRef.current = loadedImages;
+  }, [loadedImages]);
 
   // Get blur amount based on difficulty
   const getBlurAmount = (difficulty?: DifficultyLevel): string => {
@@ -114,7 +122,7 @@ const MarketPanel = ({
     [onImagesLoaded]
   );
 
-  const loadStocks = useCallback(async () => {
+  const loadStocks = useCallback(async (): Promise<void> => {
     try {
       const data = await marketAPI.getAvailableStocks(sessionId);
 
@@ -177,11 +185,11 @@ const MarketPanel = ({
         }, 2000);
       }
 
-      // Check if all tracked images are loaded
+      // Check if all tracked images are loaded using ref to avoid dependency
       const allTrackedImages = Array.from(imagesToLoadRef.current);
       const allLoaded =
         allTrackedImages.length > 0 &&
-        allTrackedImages.every((id) => loadedImages.has(id));
+        allTrackedImages.every((id) => loadedImagesRef.current.has(id));
 
       // If no images need loading OR all are already loaded, notify
       if (imagesToLoadRef.current.size === 0 || allLoaded) {
@@ -194,13 +202,36 @@ const MarketPanel = ({
       // On error, notify that loading is done (so timer can start)
       onImagesLoaded?.();
     }
-  }, [sessionId, onImagesLoaded, loadedImages]);
+  }, [sessionId, onImagesLoaded]);
 
+  // Load stocks only when sessionId or roundNumber actually changes
+  // Use a flag to prevent multiple simultaneous calls
+  const isLoadingRef = useRef(false);
+  
   useEffect(() => {
-    loadStocks();
-    const interval = setInterval(loadStocks, 10000);
-    return () => clearInterval(interval);
-  }, [loadStocks]);
+    if (!sessionId) return;
+    if (isLoadingRef.current) return; // Prevent concurrent calls
+    
+    // Only load stocks if roundNumber is defined (round is active)
+    // Don't load if roundNumber is undefined (between rounds)
+    if (roundNumber === undefined) {
+      return;
+    }
+    
+    // Check if sessionId or roundNumber actually changed
+    const sessionIdChanged = sessionId !== lastLoadedSessionIdRef.current;
+    const roundNumberChanged = roundNumber !== lastLoadedRoundNumberRef.current;
+    
+    if (sessionIdChanged || roundNumberChanged) {
+      lastLoadedSessionIdRef.current = sessionId;
+      lastLoadedRoundNumberRef.current = roundNumber;
+      isLoadingRef.current = true;
+      loadStocks().finally(() => {
+        isLoadingRef.current = false;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, roundNumber]);
 
   // Refresh stocks when refreshTrigger changes (e.g., after a trade)
   useEffect(() => {
@@ -275,13 +306,33 @@ const MarketPanel = ({
       ),
       dataIndex: "symbol",
       key: "symbol",
-      render: (text: string) => (
+      render: (text: string, record: StockDTO) => {
+        // Use real stock symbol from backend (not hardcoded)
+        const realSymbol = record.realStockSymbol;
+        
+        return (
+          <div>
         <span
           style={{ fontWeight: "bold", fontSize: "14px", color: "#63b3ed" }}
         >
           {text}
         </span>
-      ),
+            {realSymbol && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "#718096",
+                  marginLeft: "6px",
+                  fontStyle: "italic"
+                }}
+                title={`Real stock: ${realSymbol}`}
+              >
+                ({realSymbol})
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: (
@@ -419,11 +470,25 @@ const MarketPanel = ({
       dataIndex: "marketPrice",
       key: "marketPrice",
       render: (value: number) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span
           style={{ color: "#48bb78", fontWeight: "bold", fontSize: "14px" }}
         >
           ${value.toFixed(2)}
         </span>
+          {/* Indicator that price uses real market data from Alpha Vantage */}
+          <span 
+            style={{ 
+              fontSize: "10px", 
+              color: "#4299e1",
+              opacity: 0.7,
+              cursor: 'help'
+            }}
+            title="Price influenced by real market data (Alpha Vantage)"
+          >
+            📊
+          </span>
+        </div>
       ),
     },
     {
@@ -441,11 +506,26 @@ const MarketPanel = ({
   return (
     <Card
       title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
         <span
           style={{ fontSize: "18px", fontWeight: "bold", color: "#e2e8f0" }}
         >
           📈 Market Stocks
         </span>
+          <span
+            style={{
+              fontSize: "11px",
+              color: "#4299e1",
+              background: "rgba(66, 153, 225, 0.1)",
+              padding: "2px 8px",
+              borderRadius: "12px",
+              border: "1px solid rgba(66, 153, 225, 0.3)",
+            }}
+            title="Prices are influenced by real stock market data from Alpha Vantage"
+          >
+            🔄 Live Market Data
+          </span>
+        </div>
       }
       extra={
         <Button

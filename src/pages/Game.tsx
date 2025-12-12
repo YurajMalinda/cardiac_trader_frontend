@@ -17,8 +17,9 @@ import PortfolioPanel from "../components/PortfolioPanel";
 import MarketPanel from "../components/MarketPanel";
 import ToolsPanel from "../components/ToolsPanel";
 import RoundResultModal from "../components/RoundResultModal";
+import GameSummaryModal from "../components/GameSummaryModal";
 import Header from "../components/Header";
-import type { RoundResultDTO, PortfolioDTO, StockDTO } from "../types";
+import type { RoundResultDTO, PortfolioDTO, StockDTO, GameSummaryDTO } from "../types";
 import { DifficultyLevel } from "../types";
 import { toast } from "react-toastify";
 import type { AxiosError } from "axios";
@@ -32,11 +33,14 @@ const Game = () => {
     startNewGame,
     startRound,
     setCurrentRound,
+    setGameSession,
   } = useGame();
   const [portfolio, setPortfolio] = useState<PortfolioDTO | null>(null);
   const [roundResult, setRoundResult] = useState<RoundResultDTO | null>(null);
+  const [gameSummary, setGameSummary] = useState<GameSummaryDTO | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [roundStartTime, setRoundStartTime] = useState<number>(0);
+  const [timeBoostAdded, setTimeBoostAdded] = useState<number>(0); // Track total time added by boosts
   const [selectedStock, setSelectedStock] = useState<StockDTO | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<DifficultyLevel>(
     DifficultyLevel.MEDIUM
@@ -97,6 +101,7 @@ const Game = () => {
       // Don't wait for images - timer should run independently
       const serverStartTime = currentRound.startTime;
       setRoundStartTime(serverStartTime);
+      setTimeBoostAdded(0); // Reset time boost when new round starts
 
       // Calculate initial remaining time based on server start time
       const now = Date.now();
@@ -123,9 +128,10 @@ const Game = () => {
     if (currentRound && roundStartTime > 0) {
       const timer = setInterval(() => {
         // Calculate elapsed time based on server start time
+        // Add timeBoostAdded to account for time boosts
         const now = Date.now();
         const elapsed = Math.floor((now - roundStartTime) / 1000);
-        const remaining = Math.max(0, currentRound.durationSeconds - elapsed);
+        const remaining = Math.max(0, currentRound.durationSeconds + timeBoostAdded - elapsed);
 
         setTimeRemaining(remaining);
 
@@ -137,7 +143,7 @@ const Game = () => {
 
       return () => clearInterval(timer);
     }
-  }, [currentRound, roundStartTime, handleRoundComplete]);
+  }, [currentRound, roundStartTime, timeBoostAdded, handleRoundComplete]);
 
   const handleStartGame = async () => {
     if (!user?.userId) return;
@@ -403,7 +409,7 @@ const Game = () => {
                       }}
                     >
                       <li style={{ marginBottom: "8px" }}>
-                        ⏱️ <strong>90 seconds</strong> per round
+                        ⏱️ <strong>60 seconds</strong> per round
                       </li>
                       <li style={{ marginBottom: "8px" }}>
                         📊 <strong>±10%</strong> price variance
@@ -426,7 +432,7 @@ const Game = () => {
                       }}
                     >
                       <li style={{ marginBottom: "8px" }}>
-                        ⏱️ <strong>60 seconds</strong> per round
+                        ⏱️ <strong>40 seconds</strong> per round
                       </li>
                       <li style={{ marginBottom: "8px" }}>
                         📊 <strong>±20%</strong> price variance
@@ -449,7 +455,7 @@ const Game = () => {
                       }}
                     >
                       <li style={{ marginBottom: "8px" }}>
-                        ⏱️ <strong>45 seconds</strong> per round
+                        ⏱️ <strong>30 seconds</strong> per round
                       </li>
                       <li style={{ marginBottom: "8px" }}>
                         📊 <strong>±30%</strong> price variance
@@ -691,13 +697,13 @@ const Game = () => {
           </Row>
         </Card>
 
-        <Row gutter={[24, 24]}>
+        <Row gutter={[24, 24]} style={{ marginTop: "24px" }}>
           <Col xs={24} sm={24} md={24} lg={14} xl={14}>
             <MarketPanel
               sessionId={gameSession.id}
               onStockSelect={setSelectedStock}
               selectedStockId={selectedStock?.id}
-              roundNumber={gameSession.currentRound}
+              roundNumber={currentRound?.roundNumber}
               difficultyLevel={gameSession.difficultyLevel}
               refreshTrigger={marketRefreshTrigger}
               onImagesLoaded={() => {
@@ -719,32 +725,68 @@ const Game = () => {
             <PortfolioPanel portfolio={portfolio} />
           </Col>
           <Col xs={24} sm={24} md={24} lg={12} xl={12}>
-            <ToolsPanel sessionId={gameSession.id} />
+            <ToolsPanel 
+              sessionId={gameSession.id}
+              onTimeBoost={(secondsAdded) => {
+                // Add to timeBoostAdded which is used in the timer calculation
+                setTimeBoostAdded((prev) => prev + secondsAdded);
+                // Also immediately add to current time remaining for instant feedback
+                setTimeRemaining((prev) => prev + secondsAdded);
+              }}
+            />
           </Col>
         </Row>
 
         {roundResult && (
           <RoundResultModal
             result={roundResult}
-            onClose={() => {
+            onClose={async () => {
               setRoundResult(null);
               if (roundResult.gameComplete) {
-                toast.success("Game Complete!");
-                // Clear the game session and current round to return to difficulty selection
-                // getCurrentSession only returns ACTIVE sessions, so completed games return null
-                if (user?.userId) {
-                  loadGameSession(user.userId).then(() => {
-                    // After loading (which will return null for completed games),
-                    // explicitly clear the current round
-                    setCurrentRound(null);
-                  });
+                // Fetch game summary before showing it
+                if (gameSession?.id) {
+                  try {
+                    const summary = await gameAPI.getGameSummary(gameSession.id);
+                    setGameSummary(summary);
+                  } catch (error) {
+                    console.error("Failed to fetch game summary:", error);
+                    toast.error("Failed to load game summary");
+                    // Still clear the game session even if summary fails
+                    if (user?.userId) {
+                      loadGameSession(user.userId).then(() => {
+                        setCurrentRound(null);
+                      });
+                    } else {
+                      setCurrentRound(null);
+                    }
+                  }
                 } else {
-                  // If no user, just clear the round
-                  setCurrentRound(null);
+                  // No session ID, just clear
+                  if (user?.userId) {
+                    loadGameSession(user.userId).then(() => {
+                      setCurrentRound(null);
+                    });
+                  } else {
+                    setCurrentRound(null);
+                  }
                 }
               } else {
                 handleStartRound();
               }
+            }}
+          />
+        )}
+
+        {gameSummary && (
+          <GameSummaryModal
+            summary={gameSummary}
+            onClose={() => {
+              setGameSummary(null);
+              toast.success("Game Complete!");
+              // Explicitly clear game session and round to return to difficulty selection
+              // Don't call loadGameSession as it's unnecessary - just clear the state directly
+              setGameSession(null);
+              setCurrentRound(null);
             }}
           />
         )}

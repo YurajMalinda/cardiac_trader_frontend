@@ -17,6 +17,7 @@ import type {
   TradeResponseDTO,
   RoundStartDTO,
   RoundResultDTO,
+  GameSummaryDTO,
   ToolResponse,
   ToolAvailabilityResponse
 } from '../types';
@@ -206,6 +207,13 @@ export const gameAPI = {
       }
       throw error;
     }
+  },
+
+  getGameSummary: async (sessionId: string): Promise<GameSummaryDTO> => {
+    const response = await api.get<GameSummaryDTO>('/game/summary', {
+      params: { sessionId },
+    });
+    return response.data;
   },
 };
 

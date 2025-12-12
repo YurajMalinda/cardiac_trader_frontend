@@ -191,7 +191,7 @@ const Login = () => {
         /* Responsive max-width adjustments */
         @media (min-width: 768px) {
           .login-card {
-            max-width: 480px !important;
+            max-width: 600px !important;
           }
         }
         @media (max-width: 767px) {
@@ -218,7 +218,7 @@ const Login = () => {
         className="login-card"
         style={{
           width: "100%",
-          maxWidth: "min(480px, calc(100vw - 32px))",
+          maxWidth: "min(600px, calc(100vw - 32px))",
           borderRadius: "16px",
           background: "rgba(26, 31, 58, 0.95)",
           border: "1px solid rgba(66, 153, 225, 0.3)",
